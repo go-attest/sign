@@ -1,7 +1,7 @@
 # sign
 
-[![ci](https://github.com/go-pkgx/sign/actions/workflows/ci.yml/badge.svg)](https://github.com/go-pkgx/sign/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/go-pkgx/sign.svg)](https://pkg.go.dev/github.com/go-pkgx/sign)
+[![ci](https://github.com/go-attest/sign/actions/workflows/ci.yml/badge.svg)](https://github.com/go-attest/sign/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/go-attest/sign.svg)](https://pkg.go.dev/github.com/go-attest/sign)
 
 Ed25519 signing for pkgx bottles — **interoperable with both
 [minisign](https://jedisct1.github.io/minisign/) and

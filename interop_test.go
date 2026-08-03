@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-pkgx/sign"
+	"github.com/go-attest/sign"
 )
 
 // pkgxRun returns a command that runs tool from pkgxPkg via pkgx, or skips the

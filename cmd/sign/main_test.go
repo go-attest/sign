@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-pkgx/sign"
+	"github.com/go-attest/sign"
 )
 
 // run2 runs the CLI capturing stdout/stderr and the exit code.

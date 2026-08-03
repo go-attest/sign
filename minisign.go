@@ -58,7 +58,7 @@ func (k *Keypair) SignMinisign(data []byte, untrusted, trusted string) string {
 	global := ed25519.Sign(k.Private, globalMsg(sig, trusted))
 
 	if untrusted == "" {
-		untrusted = "signed with go-pkgx/sign"
+		untrusted = "signed with go-attest/sign"
 	}
 	var b strings.Builder
 	b.WriteString(cUntrusted + untrusted + "\n")

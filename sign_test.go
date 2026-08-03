@@ -52,7 +52,7 @@ func TestMinisignRoundTrip(t *testing.T) {
 	data := []byte("round trip data")
 	// default untrusted comment (empty → default), custom trusted
 	sig := kp.SignMinisign(data, "", "trust me")
-	if !strings.Contains(sig, "signed with go-pkgx/sign") {
+	if !strings.Contains(sig, "signed with go-attest/sign") {
 		t.Errorf("default untrusted comment missing:\n%s", sig)
 	}
 	pub := kp.PublicKeyFile("") // default comment path

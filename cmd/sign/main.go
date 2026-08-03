@@ -12,7 +12,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/go-pkgx/sign"
+	"github.com/go-attest/sign"
 )
 
 var osExit = os.Exit
