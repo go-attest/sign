@@ -15,6 +15,12 @@ import (
 func pkgxRun(t *testing.T, pkgxPkg, tool string, args ...string) *exec.Cmd {
 	t.Helper()
 	if _, err := exec.LookPath("pkgx"); err != nil {
+		// A skipped judge reads exactly like a passing one, and these are the
+		// only tests in which anything other than this package looks at a
+		// signature we produced. The lane that installs pkgx sets this.
+		if os.Getenv("SIGN_REQUIRE_PKGX") != "" {
+			t.Fatalf("SIGN_REQUIRE_PKGX is set but pkgx is not installed: %v", err)
+		}
 		t.Skip("pkgx not on PATH; skipping real-binary interop")
 	}
 	full := append([]string{"+" + pkgxPkg, "--", tool}, args...)

@@ -10,7 +10,23 @@ jobs:
         with: { go-version: stable }
       - run: go vet ./...
       - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      # The real signers are the judges here: our .minisig must verify under
+      # minisign, minisign's own signatures must verify under us, and cosign
+      # must accept our blob signature. All three skipped on every push,
+      # because nothing installed pkgx -- so the only thing ever checked about
+      # a signature format was that this package agreed with itself.
+      - name: pkgx, which brings the real signers
+        run: curl -fsS https://pkgx.sh | sh
+      # And the judges must be reachable in THIS lane: a skip here looks
+      # exactly like a pass.
+      - name: both judges are there
+        run: |
+          pkgx +jedisct1.github.io/minisign -- minisign -v
+          pkgx +sigstore.dev/cosign -- cosign version
       - name: test + 100% coverage gate
+        env:
+          # A skip here would look exactly like a pass.
+          SIGN_REQUIRE_PKGX: "1"
         run: |
           go test ./... -covermode=atomic -coverprofile=cov.out
           total=$(go tool cover -func=cov.out | awk '/^total:/{print $3}')
