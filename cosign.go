@@ -98,3 +98,24 @@ func SimpleSigningPayload(dockerRef, manifestDigest string) ([]byte, error) {
 func (k *Keypair) SignPayload(payload []byte) string {
 	return base64.StdEncoding.EncodeToString(ed25519.Sign(k.Private, payload))
 }
+
+// simpleSigningType is the critical.type value of a cosign simple-signing
+// payload.
+const simpleSigningType = "cosign container image signature"
+
+// IsSimpleSigningPayload reports whether data is a cosign simple-signing JSON
+// payload, the shape SimpleSigningPayload produces: a JSON object whose
+// "critical.type" is "cosign container image signature". Raw-blob signing
+// refuses such input, because SignBlob and SignPayload share one key and one
+// signature encoding.
+func IsSimpleSigningPayload(data []byte) bool {
+	var p struct {
+		Critical *struct {
+			Type string `json:"type"`
+		} `json:"critical"`
+	}
+	if err := json.Unmarshal(data, &p); err != nil {
+		return false
+	}
+	return p.Critical != nil && p.Critical.Type == simpleSigningType
+}

@@ -67,6 +67,11 @@ sign sign   --sec k.key [--comment C] <file>        # writes <file>.minisig and 
 sign verify --pub k.pub <file>                       # verifies <file>.minisig
 ```
 
+`keygen` creates the secret key with mode 0600 (the public files stay 0644),
+refuses to overwrite an existing file or follow a symlink, and warns when the
+directory is writable by group or others. `sign` refuses an input that is a
+cosign simple-signing (OCI) payload, since one key signs both.
+
 ## Interoperability
 
 Proven in CI-independent tests against the real `minisign` and `cosign`
