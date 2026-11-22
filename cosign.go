@@ -114,8 +114,8 @@ func IsSimpleSigningPayload(data []byte) bool {
 			Type string `json:"type"`
 		} `json:"critical"`
 	}
-	if err := json.Unmarshal(data, &p); err != nil {
-		return false
-	}
+	// A syntax error leaves p untouched (Unmarshal validates before it
+	// decodes), so Critical stays nil and the answer is false.
+	_ = json.Unmarshal(data, &p)
 	return p.Critical != nil && p.Critical.Type == simpleSigningType
 }

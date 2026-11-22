@@ -220,7 +220,7 @@ func TestKeygenWarnsOnWritableDir(t *testing.T) {
 	var b bytes.Buffer
 	og := goos
 	goos = "windows"
-	warnUnsafeDir(dir, &b)
+	warnUnsafeDir(filepath.Join(dir, "k"), &b)
 	goos = og
 	if b.Len() != 0 {
 		t.Errorf("warned on windows: %q", b.String())
@@ -228,6 +228,51 @@ func TestKeygenWarnsOnWritableDir(t *testing.T) {
 	warnUnsafeDir(filepath.Join(dir, "no", "such", "k"), &b)
 	if b.Len() != 0 {
 		t.Errorf("warned about a missing dir: %q", b.String())
+	}
+	// a parent that is a regular file (mode 0666) is not a directory: no warning
+	notDir := filepath.Join(privateDir(t), "file")
+	os.WriteFile(notDir, nil, 0o600)
+	os.Chmod(notDir, 0o666)
+	warnUnsafeDir(filepath.Join(notDir, "k"), &b)
+	if b.Len() != 0 {
+		t.Errorf("warned about a non-directory: %q", b.String())
+	}
+}
+
+func TestKeygenSecretCreateFailureWritesNothingElse(t *testing.T) {
+	dir := privateDir(t)
+	pub, sec := filepath.Join(dir, "k.pub"), filepath.Join(dir, "k.key")
+	oo := osOpenFile
+	defer func() { osOpenFile = oo }()
+	osOpenFile = func(p string, fl int, m os.FileMode) (*os.File, error) {
+		if p == sec {
+			return nil, errors.New("denied")
+		}
+		return oo(p, fl, m)
+	}
+	c, _, e := run2("keygen", "--pub", pub, "--sec", sec)
+	if c != 1 || !strings.Contains(e, "denied") {
+		t.Errorf("code=%d err=%q", c, e)
+	}
+	if _, err := os.Stat(pub); err == nil {
+		t.Error("a public key was written although the secret key was not")
+	}
+}
+
+func TestCreateNew(t *testing.T) {
+	dir := privateDir(t)
+	p := filepath.Join(dir, "f")
+	if err := createNew(p, []byte("one"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(p); string(b) != "one" {
+		t.Errorf("content %q", b)
+	}
+	if err := createNew(p, []byte("two"), 0o600); err == nil {
+		t.Error("createNew overwrote an existing file")
+	}
+	if b, _ := os.ReadFile(p); string(b) != "one" {
+		t.Errorf("existing file changed to %q", b)
 	}
 }
 
