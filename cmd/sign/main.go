@@ -4,6 +4,7 @@
 //	sign keygen  --pub k.pub --sec k.key [--comment C]
 //	sign sign    --sec k.key [--comment C] <file>   # writes <file>.minisig + <file>.cosig
 //	sign verify  --pub k.pub <file>                 # verifies <file>.minisig
+//	sign pubkey  [--sec k.key]                      # prints the public half of a secret key (file, or stdin)
 package main
 
 import (
@@ -23,7 +24,7 @@ func main() { osExit(run(os.Args[1:], os.Stdout, os.Stderr)) }
 
 func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: sign <keygen|sign|verify> [flags] [file]")
+		fmt.Fprintln(stderr, "usage: sign <keygen|sign|verify|pubkey> [flags] [file]")
 		return 2
 	}
 	switch args[0] {
@@ -33,6 +34,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return signCmd(args[1:], stdout, stderr)
 	case "verify":
 		return verifyCmd(args[1:], stdout, stderr)
+	case "pubkey":
+		return pubkeyCmd(args[1:], stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "sign: unknown command %q\n", args[0])
 		return 2
@@ -172,6 +175,52 @@ func verifyCmd(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// maxSecretKeyFile bounds what pubkey reads: a secret-key file is a comment line
+// and one base64 line, well under a kilobyte.
+const maxSecretKeyFile = 4096
+
+// pubkeyCmd prints the public half of a secret key: the two-line minisign .pub
+// file and the key id, and nothing else. The secret is read from a file or from
+// stdin (no --sec, or "-"), never from argv, and no byte of it, nor the comment
+// line it came with, is echoed, success or failure.
+func pubkeyCmd(args []string, stdout, stderr io.Writer) int {
+	f := fs("pubkey", stderr)
+	sec := f.String("sec", "-", "secret key path, or - for stdin")
+	if err := f.Parse(args); err != nil {
+		return 2
+	}
+	if f.NArg() != 0 {
+		fmt.Fprintln(stderr, "pubkey: takes no argument; the secret is read from --sec or stdin, never argv")
+		return 2
+	}
+	var (
+		b   []byte
+		err error
+	)
+	if *sec == "-" {
+		b, err = io.ReadAll(io.LimitReader(osStdin, maxSecretKeyFile+1))
+	} else {
+		b, err = osReadFile(*sec)
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, "pubkey:", err)
+		return 1
+	}
+	if len(b) > maxSecretKeyFile {
+		fmt.Fprintln(stderr, "pubkey: input is too large to be a secret key")
+		return 1
+	}
+	kp, err := sign.LoadSecretKey(string(b))
+	if err != nil {
+		// Only the fixed reason: the decoder's error could quote input.
+		fmt.Fprintln(stderr, "pubkey: not a secret key")
+		return 1
+	}
+	fmt.Fprint(stdout, kp.PublicKeyFile(""))
+	fmt.Fprintf(stdout, "key id: %X\n", kp.ID)
+	return 0
+}
+
 func loadSecret(path string) (*sign.Keypair, error) {
 	b, err := osReadFile(path)
 	if err != nil {
@@ -223,12 +272,13 @@ func writeFiles(files map[string][]byte) error {
 
 // seams for tests.
 var (
-	osReadFile  = os.ReadFile
-	osWriteFile = os.WriteFile
-	goos        = runtime.GOOS
-	osOpenFile  = os.OpenFile
-	osLstat     = os.Lstat
-	osStat      = os.Stat
-	generate    = sign.Generate
-	pubPEM      = func(k *sign.Keypair) ([]byte, error) { return k.PublicKeyPEM() }
+	osStdin     io.Reader = os.Stdin
+	osReadFile            = os.ReadFile
+	osWriteFile           = os.WriteFile
+	goos                  = runtime.GOOS
+	osOpenFile            = os.OpenFile
+	osLstat               = os.Lstat
+	osStat                = os.Stat
+	generate              = sign.Generate
+	pubPEM                = func(k *sign.Keypair) ([]byte, error) { return k.PublicKeyPEM() }
 )
