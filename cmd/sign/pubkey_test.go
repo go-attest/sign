@@ -100,16 +100,16 @@ func TestPubkeyRefusals(t *testing.T) {
 	}
 
 	// Garbage that carries recognisable text is refused without echoing it.
-	for name, in := range map[string]string{
-		"empty":   "",
-		"text":    "untrusted comment: SENTINEL-COMMENT\nnot base64 SENTINEL-BODY\n",
-		"short":   "c\n" + base64.StdEncoding.EncodeToString([]byte("SENTINEL-SHORT")) + "\n",
-		"pubkey":  "untrusted comment: x\nRWThxRI20GKw0BWqZHXpqJ/Wo2nX8ntSLIrXIFwK/FKm9F/vSE6Bl+mU\n",
-		"toolong": strings.Repeat("A", maxSecretKeyFile+1),
+	for name, tc := range map[string]struct{ in, msg string }{
+		"empty":   {"", "pubkey: not a secret key\n"},
+		"text":    {"untrusted comment: SENTINEL-COMMENT\nnot base64 SENTINEL-BODY\n", "pubkey: not a secret key\n"},
+		"short":   {"c\n" + base64.StdEncoding.EncodeToString([]byte("SENTINEL-SHORT")) + "\n", "pubkey: not a secret key\n"},
+		"pubkey":  {"untrusted comment: x\nRWThxRI20GKw0BWqZHXpqJ/Wo2nX8ntSLIrXIFwK/FKm9F/vSE6Bl+mU\n", "pubkey: not a secret key\n"},
+		"toolong": {strings.Repeat("A", maxSecretKeyFile+1), "pubkey: input is too large to be a secret key\n"},
 	} {
-		withStdin(t, in, func() {
+		withStdin(t, tc.in, func() {
 			c, out, e := run2("pubkey")
-			if c != 1 || out != "" || e == "" {
+			if c != 1 || out != "" || e != tc.msg {
 				t.Errorf("%s: code=%d out=%q err=%q", name, c, out, e)
 			}
 			if strings.Contains(e, "SENTINEL") || strings.Contains(e, "RWThx") {
@@ -122,7 +122,7 @@ func TestPubkeyRefusals(t *testing.T) {
 	old := osStdin
 	osStdin = errReader{}
 	defer func() { osStdin = old }()
-	if c, _, e := run2("pubkey"); c != 1 || e == "" {
+	if c, _, e := run2("pubkey"); c != 1 || e != "pubkey: "+os.ErrInvalid.Error()+"\n" {
 		t.Errorf("read error: code=%d err=%q", c, e)
 	}
 }
