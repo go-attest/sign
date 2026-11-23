@@ -65,7 +65,14 @@ library only emits the legacy (`Ed`) form so verification needs nothing beyond
 sign keygen --pub k.pub --sec k.key [--comment C]   # writes k.pub, k.pub.pem (cosign), k.key
 sign sign   --sec k.key [--comment C] <file>        # writes <file>.minisig and <file>.cosig
 sign verify --pub k.pub <file>                       # verifies <file>.minisig
+sign pubkey [--sec k.key]                            # prints the .pub text and key id of a secret key (file, or stdin)
 ```
+
+`pubkey` derives the public half of a secret key that is only held in a secret
+store, so it can be published and pinned. The secret is read from `--sec` or
+stdin, never from argv; the output is the two-line minisign `.pub` file followed
+by `key id: <hex>`, and nothing of the secret (not even its comment line) is
+ever printed, on success or failure.
 
 `keygen` creates the secret key with mode 0600 (the public files stay 0644),
 refuses to overwrite an existing file or follow a symlink, and warns when the
